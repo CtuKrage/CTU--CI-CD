@@ -1,0 +1,51 @@
+# This workflow will run tests using node and then publish a package to GitHub Packages when a release is created
+# For more information see: https://docs.github.com/en/actions/publishing-packages/publishing-nodejs-packages
+name: Node.js CI/CD Pipeline
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v2
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v2
+        with:
+          node-version: 16
+
+      - name: Install Dependencies
+        run: npm install
+
+      - name: Build
+        run: npm run build
+
+      - name: Test
+        run: npm run test
+
+      - name: Deploy to Staging
+        run: ./deploy-script.sh
+        # Replace with your actual deployment script/command
+
+      - name: Send Notification on Failure
+        if: ${{ failure() }}
+        run: |
+          echo "Build or deployment failed. Notify the team."
+
+      - name: Create Issue
+        if: ${{ failure() }}
+        uses: actions/github-script@v4
+        with:
+          script: |
+            github.issues.create({
+              repo: context.repo.repo,
+              owner: context.repo.owner,
+              title: 'CI/CD Failure Notification',
+              body: 'The CI/CD pipeline has failed. Please investigate and take appropriate action.'
+            })
